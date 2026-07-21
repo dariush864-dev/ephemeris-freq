@@ -1806,10 +1806,3 @@ drawVisualizer();
         ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
     }
-
-// Force-mount safety initializer
-window.addEventListener('DOMContentLoaded', () => {
-    if (typeof initApp === 'function') initApp();
-    if (typeof renderChart === 'function') renderChart();
-    console.log("Sanctuary Core: Manual UI bootstrap triggered.");
-});
