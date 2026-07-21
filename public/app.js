@@ -1783,7 +1783,6 @@ fetchCelestialData();
 setInterval(fetchCelestialData, 15000);
 drawVisualizer();
 // (Inside drawVisualizer, replace the sonar loop section with this:)
-    const maxSonarRadius = 140;
     for (let r = 1; r <= 3; r++) {
         const ringProgress = (cycleProgress + (r * 0.33)) % 1.0;
         const ringRadius = ringProgress * maxSonarRadius;
@@ -1796,7 +1795,6 @@ drawVisualizer();
         ctx.stroke();
     }
 // (Inside drawVisualizer, replace the sonar loop section with this:)
-    const maxSonarRadius = 140;
     for (let r = 1; r <= 3; r++) {
         const ringProgress = (cycleProgress + (r * 0.33)) % 1.0;
         const ringRadius = ringProgress * maxSonarRadius;
