@@ -1782,27 +1782,3 @@ function drawVisualizer() {
 fetchCelestialData();
 setInterval(fetchCelestialData, 15000);
 drawVisualizer();
-// (Inside drawVisualizer, replace the sonar loop section with this:)
-    for (let r = 1; r <= 3; r++) {
-        const ringProgress = (cycleProgress + (r * 0.33)) % 1.0;
-        const ringRadius = ringProgress * maxSonarRadius;
-        const ringAlpha = (1.0 - ringProgress) * 0.75;
-        
-        ctx.strokeStyle = `rgba(56, 189, 248, ${ringAlpha.toFixed(2)})`; // Electric Blue (#38bdf8)
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-// (Inside drawVisualizer, replace the sonar loop section with this:)
-    for (let r = 1; r <= 3; r++) {
-        const ringProgress = (cycleProgress + (r * 0.33)) % 1.0;
-        const ringRadius = ringProgress * maxSonarRadius;
-        const ringAlpha = (1.0 - ringProgress) * 0.75;
-        
-        ctx.strokeStyle = `rgba(56, 189, 248, ${ringAlpha.toFixed(2)})`; // Electric Blue (#38bdf8)
-        ctx.lineWidth = 2.0;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-    }
