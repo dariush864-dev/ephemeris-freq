@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ephemeris Freq - Sanctuary Core</title>
+    <style>
+        body {
+            margin: 0;
+            background: #070913;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 1rem 0;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.3rem; letter-spacing: 0.05em; color: #a5b4fc; text-align: center; }
+        
+        .sanctuary-hud {
+            display: flex;
+            gap: 1.5rem;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .hud-item span { display: block; color: #818cf8; font-weight: 600; font-size: 0.9rem; }
+
+        .somatic-practice-hud {
+            display: flex;
+            gap: 2rem;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            max-width: 1320px;
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .somatic-practice-hud strong { color: #38bdf8; display: block; margin-top: 2px; }
+
+        .workspace-grid {
+            display: flex;
+            gap: 1.2rem;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1360px;
+            width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        canvas {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Tri-Column Engine Panels */
+        .tri-column-container {
+            display: flex;
+            gap: 1rem;
+            max-width: 1360px;
+            width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .psychology-panel {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            padding: 1rem;
+            flex: 1;
+            min-width: 380px;
+            max-width: 420px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .psychology-panel h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #a5b4fc;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .psych-card {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 0.7rem;
+        }
+        .psych-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 0.3rem;
+        }
+        .psych-desc {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        .psych-desc ul {
+            margin: 0.2rem 0 0 1rem;
+            padding: 0;
+        }
+        .psych-desc li {
+            margin-bottom: 0.2rem;
+        }
+
+        /* Horizontal Somatic Visual Guide Layout */
+        .visual-guide-horizontal {
+            display: flex;
+            gap: 1rem;
+            max-width: 1360px;
+            width: 100%;
+            margin-top: 1rem;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 1rem;
+        }
+        .guide-box-horiz {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 1rem;
+            flex: 1;
+            min-width: 380px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.4);
+        }
+        .guide-box-horiz canvas {
+            background: #020617;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+        .guide-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .guide-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+        .guide-desc {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        .defense-box {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(244, 63, 94, 0.4);
+            border-radius: 10px;
+            padding: 1rem;
+            font-size: 0.78rem;
+            color: #fca5a5;
+            line-height: 1.4;
+            max-width: 1360px;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 1rem 1rem 0 1rem;
+            box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.15);
+        }
+        .defense-box strong { color: #f43f5e; display: block; margin-bottom: 4px; font-size: 0.85rem; }
+
+        .planet-tooltip {
+            position: absolute;
+            display: none;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid #6366f1;
+            color: #f8fafc;
+            padding: 0.6rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+            z-index: 100;
+            white-space: nowrap;
+        }
+        
+        .natal-form {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            background: #1e293b;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .natal-form input {
+            background: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .rec-banner {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            max-width: 1360px;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .controls {
+            margin-top: 0.8rem;
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1360px;
+            width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+        select, button, input[type="range"] {
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #334155;
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover, select:hover { background: #334155; border-color: #6366f1; }
+        button#toggleAudio {
+            background: #4f46e5;
+            font-weight: 600;
+        }
+        button#toggleAudio:hover { background: #4338ca; }
+        .drone-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .breath-status {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #c7d2fe;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 600;
+            text-align: center;
+            padding: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sanctuary Core Engine — The Architect</h1>
+
+    <div class="sanctuary-hud">
+        <div class="hud-item">Focus Type: <span id="focusType">Internal</span></div>
+        <div class="hud-item">Somatic Anchor: <span id="somaticBodyPart">Heart Center</span></div>
+        <div class="hud-item">Cycle Timer: <span id="cycleTimer">14:00</span></div>
+    </div>
+
+    <div class="somatic-practice-hud">
+        <div>Mudra: <strong id="hudMudra">Prana Mudra</strong></div>
+        <div>Yoga Exercise: <strong id="hudYoga">Bhujangasana (Cobra Pose)</strong></div>
+    </div>
+
+    <form class="natal-form" id="natalForm">
+        <label>Natal Date/Time:</label>
+        <input type="datetime-local" id="natalDateTime" required>
+        <button type="submit">Calculate Transit Overlay</button>
+        <button type="button" id="clearOverlayBtn">Clear Overlay</button>
+    </form>
+
+    <div class="workspace-grid">
+        <div class="canvas-container">
+            <canvas id="visualizer" width="800" height="520"></canvas>
+            <div class="planet-tooltip" id="planetTooltip"></div>
+        </div>
+    </div>
+
+    <div class="tri-column-container">
+        <!-- Column 1: Collective Transit Psychology -->
+        <div class="psychology-panel">
+            <h3>🌐 Collective Transit Psychology</h3>
+            
+            <div class="psych-card">
+                <div class="psych-title">❤️ Love & Relational Dynamics</div>
+                <div class="psych-desc" id="psychLove">Shifting aspect geometries prompt us to release projection. Psychological choice: Choose vulnerability over defensive posturing in close bonds.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">🧬 Health & Somatic Balance</div>
+                <div class="psych-desc" id="psychHealth">Nervous system sensitivity increases during nodal transits. Psychological choice: Prioritize vagus nerve regulation and rhythmic breathing over burnout.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">📈 Career & Strategic Focus</div>
+                <div class="psych-desc" id="psychCareer">Structural friction pushes against stagnant workflows. Psychological choice: Audit long-term commitments and restructure foundational priorities.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">💰 Wealth & Resource Flow</div>
+                <div class="psych-desc" id="psychWealth">Scarcity mindsets surface when outer planets square personal axes. Psychological choice: Anchor value in sovereign creation rather than external validation.</div>
+            </div>
+        </div>
+
+        <!-- Column 2: Personal Structural Integration -->
+        <div class="psychology-panel">
+            <h3>👤 Personal Structural Integration</h3>
+            
+            <div class="psych-card">
+                <div class="psych-title">❤️ Relational Blueprint (Natal)</div>
+                <div class="psych-desc" id="personalLove">Enter natal data above to map transits directly to your personal chart placements and uncover your specific interpersonal triggers.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">🧬 Somatic & Cellular Feedback</div>
+                <div class="psych-desc" id="personalHealth">Personalized bio-feedback alignment tracks your unique energetic baseline against current celestial frequencies.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">📈 Professional Trajectory</div>
+                <div class="psych-desc" id="personalCareer">Map transit house activations to identify where your personal skill sets receive maximum leverage and career acceleration.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">💰 Resource Sovereignty</div>
+                <div class="psych-desc" id="personalWealth">Identify personal blind spots regarding financial flow and value exchange based on your natal houses.</div>
+            </div>
+        </div>
+
+        <!-- Column 3: Creative Ideas & Rut-Breakers -->
+        <div class="psychology-panel">
+            <h3>🎨 Creative Antidotes & Rut-Breakers</h3>
+            
+            <div class="psych-card">
+                <div class="psych-title">❤️ Relational Catalyst Exercises</div>
+                <div class="psych-desc" id="creativeLove">Partner exercise: 10 minutes of active mirror-gazing with zero speech to dissolve superficial social masks and restore deep eye contact.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">🧬 Somatic Reset & Movement</div>
+                <div class="psych-desc" id="creativeHealth">Rut-breaker: 15 minutes of unstructured floor rolling, spine articulation, and deep physiological sighing to discharge stored muscular armor.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">📈 Strategic Innovation Prompts</div>
+                <div class="psych-desc" id="creativeCareer">Creative output: Write down 3 obsolete commitments you are maintaining purely out of guilt, and outline a deliberate de-escalation plan.</div>
+            </div>
+
+            <div class="psych-card">
+                <div class="psych-title">💰 Abundance & Value Projects</div>
+                <div class="psych-desc" id="creativeWealth">Action plan: Build a tangible prototype or mind-map for a sovereign micro-project that generates direct value independent of corporate validation.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="visual-guide-horizontal">
+        <div class="guide-box-horiz">
+            <canvas id="mudraCanvas" width="130" height="90"></canvas>
+            <div class="guide-content">
+                <div class="guide-title" id="guideMudraName">Mudra Diagram</div>
+                <div class="guide-desc" id="guideMudraDesc">Hand placement configuration for energetic channeling.</div>
+            </div>
+        </div>
+
+        <div class="guide-box-horiz">
+            <canvas id="yogaCanvas" width="130" height="90"></canvas>
+            <div class="guide-content">
+                <div class="guide-title" id="guideYogaName">Posture Alignment</div>
+                <div class="guide-desc" id="guideYogaDesc">Structural spinal alignment and breath coordination.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="defense-box" id="defenseBox">
+        <strong>🛡️ Spiritual Defense Protocol</strong>
+        <span id="defenseText">Click any Zodiac sign on the outer ring above to snap down here and load specific shielding and energetic boundary protocols.</span>
+    </div>
+    
+    <div class="rec-banner" id="recBanner">Recommended Beat: Select a celestial body</div>
+    <div class="breath-status" id="breathStatus">Inhale (4s)</div>
+
+    <div class="controls">
+        <select id="modeSelect">
+            <option value="planet">Mode: Single Planet</option>
+            <option value="aspect">Mode: Transit Aspects</option>
+            <option value="overlay">Mode: Natal Overlay Aspects</option>
+        </select>
+        <select id="audioMode">
+            <option value="binaural">Audio: Binaural Beat</option>
+            <option value="solfeggio">Audio: Solfeggio Pure Tone</option>
+            <option value="recommended">Audio: Auto-Recommended Frequency</option>
+        </select>
+        <select id="targetSelect"></select>
+        
+        <select id="tuningSelect">
+            <option value="432">Master Root: 432 Hz (Verdi / Cosmic)</option>
+            <option value="440">Master Root: 440 Hz (Standard)</option>
+            <option value="444">Master Root: 444 Hz (C=528 Anchor)</option>
+            <option value="174">Master Root: 174 Hz (Foundation)</option>
+            <option value="285">Master Root: 285 Hz (Quantum Cognition)</option>
+            <option value="396">Master Root: 396 Hz (Liberation / Root)</option>
+            <option value="417">Master Root: 417 Hz (Transmutation / Sacral)</option>
+            <option value="528">Master Root: 528 Hz (DNA Repair / Solar)</option>
+            <option value="639">Master Root: 639 Hz (Harmonic / Heart)</option>
+            <option value="741">Master Root: 741 Hz (Expression / Throat)</option>
+            <option value="852">Master Root: 852 Hz (Intuition / Third Eye)</option>
+            <option value="963">Master Root: 963 Hz (Divine / Crown)</option>
+        </select>
+
+        <select id="breathPatternSelect">
+            <option value="balanced">Breath: Balanced (4s In / 4s Out)</option>
+            <option value="box">Breath: Box (4s In / 4s Hold / 4s Out / 4s Hold)</option>
+            <option value="deepBox">Breath: Deep Box (5s In / 5s Hold / 5s Out / 5s Hold)</option>
+            <option value="reset">Breath: Reset (4s In / 7s Hold / 8s Out)</option>
+            <option value="coherence">Breath: Heart Coherence (5.5s In / 5.5s Out)</option>
+            <option value="deepRelease">Breath: Deep Release (4s In / 8s Out)</option>
+            <option value="energizing">Breath: Energizing / Active (2s In / 2s Out)</option>
+        </select>
+
+        <select id="droneTypeSelect">
+            <option value="brown">Ambient Realm: Brown Noise</option>
+            <option value="white">Ambient Realm: White Noise</option>
+            <option value="pink">Ambient Realm: Pink Noise</option>
+            <option value="blue">Ambient Realm: Blue Noise</option>
+            <option value="tibetan">Healing Tool: Tibetan Singing Bowls</option>
+            <option value="forks">Healing Tool: Tuning Forks</option>
+            <option value="pandrum">Healing Tool: Pandrum / Handpan</option>
+            <option value="harp">Healing Tool: Celestial Harp</option>
+            <option value="flute">Healing Tool: Meditative Flute</option>
+        </select>
+
+        <div class="drone-control">
+            <label for="droneVol">Ambient Level:</label>
+            <input type="range" id="droneVol" min="0" max="100" value="30">
+        </div>
+
+        <button id="toggleAudio">Activate Frequency Stream</button>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
