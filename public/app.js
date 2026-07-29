@@ -1782,3 +1782,244 @@ function drawVisualizer() {
 fetchCelestialData();
 setInterval(fetchCelestialData, 15000);
 drawVisualizer();
+
+// --- Performance Optimization: DOM Update Caching ---
+let lastLegendHTML = '';
+let lastPortalHTML = '';
+
+function updateDOMIfChanged(element, newHTML, cacheKey) {
+  if (cacheKey === 'legend' && newHTML !== lastLegendHTML) {
+    element.innerHTML = newHTML;
+    lastLegendHTML = newHTML;
+  } else if (cacheKey === 'portal' && newHTML !== lastPortalHTML) {
+    element.innerHTML = newHTML;
+    lastPortalHTML = newHTML;
+  }
+}
+
+// --- Performance Optimization: Offscreen Canvas Caching ---
+let staticOffscreenCanvas = null;
+let staticOffscreenCtx = null;
+let isStaticLayerDirty = true;
+
+function initOffscreenCanvas(width = 1200, height = 1200) {
+  if (!staticOffscreenCanvas) {
+    staticOffscreenCanvas = document.createElement('canvas');
+    staticOffscreenCanvas.width = width;
+    staticOffscreenCanvas.height = height;
+    staticOffscreenCtx = staticOffscreenCanvas.getContext('2d');
+  }
+}
+
+function renderStaticZodiacBackground(center, radius) {
+  if (!staticOffscreenCtx) return;
+  const ctx = staticOffscreenCtx;
+  ctx.clearRect(0, 0, staticOffscreenCanvas.width, staticOffscreenCanvas.height);
+
+  // Background Ring Base
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1.5;
+
+  // Render 360 Ticks
+  for (let i = 0; i < 360; i++) {
+    const angle = (i * Math.PI) / 180;
+    const isMajor = i % 30 === 0;
+    const isMid = i % 10 === 0;
+    const innerR = radius - (isMajor ? 18 : isMid ? 12 : 6);
+
+    const x1 = center.x + radius * Math.cos(angle);
+    const y1 = center.y + radius * Math.sin(angle);
+    const x2 = center.x + innerR * Math.cos(angle);
+    const y2 = center.y + innerR * Math.sin(angle);
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = isMajor ? 'rgba(212, 175, 55, 0.6)' : isMid ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+    ctx.stroke();
+  }
+  ctx.restore();
+  isStaticLayerDirty = false;
+}
+
+function drawCachedStaticBackground(mainCtx, center, radius) {
+  if (!staticOffscreenCanvas) {
+    initOffscreenCanvas(mainCtx.canvas.width, mainCtx.canvas.height);
+  }
+  if (isStaticLayerDirty) {
+    renderStaticZodiacBackground(center, radius);
+  }
+  mainCtx.drawImage(staticOffscreenCanvas, 0, 0);
+}
+
+// --- Audio Engine Enhancement: Aspect Interval Synthesis ---
+const ASPECT_RATIOS = {
+  conjunction: 1.0,     // 0°   Unison
+  sextile: 1.25,        // 60°  Major 3rd (5:4)
+  square: 1.20,         // 90°  Minor 3rd / Tritone Tension (6:5)
+  trine: 1.50,          // 120° Perfect 5th (3:2)
+  opposition: 2.00      // 180° Octave / Polarity (2:1)
+};
+
+function calculateAspectFrequency(baseFreq, angularDistanceDegrees, orbTolerance = 6) {
+  const normAngle = Math.abs(angularDistanceDegrees) % 360;
+  
+  // Check within orb limits
+  if (Math.abs(normAngle - 0) <= orbTolerance || Math.abs(normAngle - 360) <= orbTolerance) {
+    return baseFreq * ASPECT_RATIOS.conjunction;
+  }
+  if (Math.abs(normAngle - 60) <= orbTolerance) {
+    return baseFreq * ASPECT_RATIOS.sextile;
+  }
+  if (Math.abs(normAngle - 90) <= orbTolerance) {
+    return baseFreq * ASPECT_RATIOS.square;
+  }
+  if (Math.abs(normAngle - 120) <= orbTolerance) {
+    return baseFreq * ASPECT_RATIOS.trine;
+  }
+  if (Math.abs(normAngle - 180) <= orbTolerance) {
+    return baseFreq * ASPECT_RATIOS.opposition;
+  }
+
+  // Default fallback if no major aspect is active
+  return baseFreq;
+}
+
+// --- Audio Engine Enhancement: Anti-Click Smooth Parameter Ramping ---
+function smoothSetGain(gainNode, targetGain, audioCtx, duration = 0.05) {
+  if (!gainNode || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  gainNode.gain.cancelScheduledValues(now);
+  
+  // Guard against <= 0 for exponential ramping
+  const safeCurrent = Math.max(gainNode.gain.value, 0.0001);
+  gainNode.gain.setValueAtTime(safeCurrent, now);
+  
+  if (targetGain <= 0.0001) {
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    gainNode.gain.setValueAtTime(0, now + duration + 0.001);
+  } else {
+    gainNode.gain.exponentialRampToValueAtTime(targetGain, now + duration);
+  }
+}
+
+function smoothSetFrequency(oscNode, targetFreq, audioCtx, duration = 0.08) {
+  if (!oscNode || !audioCtx || targetFreq <= 0) return;
+  const now = audioCtx.currentTime;
+  oscNode.frequency.cancelScheduledValues(now);
+  oscNode.frequency.setValueAtTime(Math.max(oscNode.frequency.value, 1), now);
+  oscNode.frequency.exponentialRampToValueAtTime(targetFreq, now + duration);
+}
+
+// --- UX Enhancement: Interactive Transit Timeline Scrubber Engine ---
+let timelineOffsetDays = 0;
+
+function setTimelineOffsetDays(days) {
+  timelineOffsetDays = parseFloat(days) || 0;
+  if (typeof isStaticLayerDirty !== 'undefined') {
+    isStaticLayerDirty = true;
+  }
+}
+
+function getTimelineAdjustedTimestamp() {
+  const msOffset = timelineOffsetDays * 24 * 60 * 60 * 1000;
+  return Date.now() + msOffset;
+}
+
+function getTimelineAdjustedEphemerisTime() {
+  return getTimelineAdjustedTimestamp() / 1000; // Returns Unix epoch seconds
+}
+
+// --- UX Enhancement: LocalStorage Persistence for Natal Configuration ---
+const STORAGE_KEY_NATAL = 'ephemeris_freq_natal_config';
+
+function saveNatalConfig(natalData) {
+  try {
+    localStorage.setItem(STORAGE_KEY_NATAL, JSON.stringify(natalData));
+  } catch (err) {
+    console.warn('Could not save natal config to localStorage:', err);
+  }
+}
+
+function loadNatalConfig() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_NATAL);
+    return saved ? JSON.parse(saved) : null;
+  } catch (err) {
+    console.warn('Could not load natal config from localStorage:', err);
+    return null;
+  }
+}
+
+function clearNatalConfig() {
+  try {
+    localStorage.removeItem(STORAGE_KEY_NATAL);
+  } catch (err) {
+    console.warn('Could not clear natal config from localStorage:', err);
+  }
+}
+
+// --- Step 1: Active DOM Guard Hook ---
+window.safeUpdateHTML = function(element, newHTML) {
+  if (!element) return;
+  if (element.dataset.renderedHtml !== newHTML) {
+    element.innerHTML = newHTML;
+    element.dataset.renderedHtml = newHTML;
+  }
+};
+
+// --- Step 2: Global Safe Render Override ---
+window.updateUI = function(legendElement, legendHTML, portalElement, portalHTML) {
+  if (legendElement && legendHTML) {
+    window.safeUpdateHTML(legendElement, legendHTML);
+  }
+  if (portalElement && portalHTML) {
+    window.safeUpdateHTML(portalElement, portalHTML);
+  }
+};
+
+// --- Step 3: Automatic DOM Interceptor Guard ---
+(function() {
+  function applyDOMGuard(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    
+    let cachedHTML = '';
+    const originalSet = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML').set;
+    
+    Object.defineProperty(el, 'innerHTML', {
+      set: function(newHTML) {
+        if (newHTML !== cachedHTML) {
+          cachedHTML = newHTML;
+          originalSet.call(this, newHTML);
+        }
+      },
+      get: function() {
+        return cachedHTML;
+      }
+    });
+  }
+
+  const initGuards = () => {
+    applyDOMGuard('legend');
+    applyDOMGuard('portal');
+    applyDOMGuard('ancestral-portal');
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGuards);
+  } else {
+    initGuards();
+  }
+})();
+
+// --- Step 4: Canvas Background Optimization Hook ---
+window.attachCanvasOptimization = function(mainCanvas, mainCtx, center, radius) {
+  if (!mainCanvas || !mainCtx) return;
+  if (typeof drawCachedStaticBackground === 'function') {
+    const c = center || { x: mainCanvas.width / 2, y: mainCanvas.height / 2 };
+    const r = radius || (mainCanvas.width * 0.416);
+    drawCachedStaticBackground(mainCtx, c, r);
+  }
+};
