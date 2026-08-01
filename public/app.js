@@ -1,8 +1,44 @@
-
 // ============================================================================
-// MASTER CLOCK: CRYSTAL-CLEAR TYPOGRAPHY & OVERLAP PREVENTION
+// SANCTUARY MASTER ENGINE: COMPLETE VISUALIZER + API + CANVAS HITS + UI BLOCKS
 // ============================================================================
 (function() {
+  // Global State Architecture
+  window.SanctuaryState = {
+    natalSubmitted: false,
+    natalDateTime: null,
+    apiPositions: [],
+    highlightedPoint: null,
+    ancestralUnlocked: false
+  };
+
+  // Parse degree string (e.g. "24°09'") to decimal degrees
+  function parseDegree(degStr) {
+    if (!degStr) return 0;
+    const clean = degStr.replace(/[^\d°\']/g, '');
+    const parts = clean.split('°');
+    const deg = parseFloat(parts[0]) || 0;
+    const min = parts[1] ? parseFloat(parts[1].replace("'", '')) || 0 : 0;
+    return deg + (min / 60);
+  }
+
+  // Toast Notification System
+  function showToast(msg) {
+    let toast = document.getElementById('sanctuary-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'sanctuary-toast';
+      toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #0f172a; color: #38bdf8; border: 1px solid #38bdf8; padding: 10px 16px; border-radius: 6px; font-family: monospace; font-size: 12px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: opacity 0.3s;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = `[SYSTEM] ${msg}`;
+    toast.style.opacity = '1';
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  }
+
+  // ============================================================================
+  // 1. MASTER CLOCK & FULL ASTRO-GRAPHICS CANVAS
+  // ============================================================================
   function initMasterClock() {
     const baseCanvas = document.querySelector('canvas:not(#sanctuary-wheel-overlay)');
     if (!baseCanvas) return;
@@ -17,19 +53,19 @@
     if (!overlay) {
       overlay = document.createElement('canvas');
       overlay.id = 'sanctuary-wheel-overlay';
-      overlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20;';
+      overlay.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; cursor: pointer; z-index: 20;';
       parent.appendChild(overlay);
     }
 
     const zodiacSigns = ['♈ Aries', '♉ Taurus', '♊ Gemini', '♋ Cancer', '♌ Leo', '♍ Virgo', '♎ Libra', '♏ Scorpio', '♐ Sagittarius', '♑ Capricorn', '♒ Aquarius', '♓ Pisces'];
 
     const rings = [
-      { name: 'Sun ☉ • 963 Hz', time: '14:00', color: '#a855f7', speed: 0.0004, radiusPct: 0.85, phaseOffset: 0.0 },
-      { name: 'Moon ☽ • 852 Hz', time: '09:31', color: '#38bdf8', speed: -0.0016, radiusPct: 0.73, phaseOffset: 1.0 },
-      { name: 'Mercury ☿ • 741 Hz', time: '08:00', color: '#06b6d4', speed: 0.0009, radiusPct: 0.61, phaseOffset: 2.1 },
-      { name: 'Venus ♀ • 639 Hz', time: '05:28', color: '#10b981', speed: -0.0007, radiusPct: 0.49, phaseOffset: 3.2 },
-      { name: 'Mars ♂ • 528 Hz', time: '04:17', color: '#f59e0b', speed: 0.0012, radiusPct: 0.37, phaseOffset: 4.2 },
-      { name: 'Saturn ♄ • 432 Hz', time: '03:33', color: '#ef4444', speed: -0.0003, radiusPct: 0.25, phaseOffset: 5.3 }
+      { id: 'sun', name: 'Sun ☉ • 963 Hz', time: '14:00', color: '#a855f7', speed: 0.0004, radiusPct: 0.85, phaseOffset: 0.0 },
+      { id: 'moon', name: 'Moon ☽ • 852 Hz', time: '09:31', color: '#38bdf8', speed: -0.0016, radiusPct: 0.73, phaseOffset: 1.0 },
+      { id: 'mercury', name: 'Mercury ☿ • 741 Hz', time: '08:00', color: '#06b6d4', speed: 0.0009, radiusPct: 0.61, phaseOffset: 2.1 },
+      { id: 'venus', name: 'Venus ♀ • 639 Hz', time: '05:28', color: '#10b981', speed: -0.0007, radiusPct: 0.49, phaseOffset: 3.2 },
+      { id: 'mars', name: 'Mars ♂ • 528 Hz', time: '04:17', color: '#f59e0b', speed: 0.0012, radiusPct: 0.37, phaseOffset: 4.2 },
+      { id: 'saturn', name: 'Saturn ♄ • 432 Hz', time: '03:33', color: '#ef4444', speed: -0.0003, radiusPct: 0.25, phaseOffset: 5.3 }
     ];
 
     const asteroids = [
@@ -60,6 +96,50 @@
     window.addEventListener('resize', resizeOverlay);
     resizeOverlay();
 
+    // POLAR CANVAS CLICK HIT DETECTION
+    overlay.addEventListener('click', (e) => {
+      const rect = overlay.getBoundingClientRect();
+      const scaleX = overlay.width / rect.width;
+      const scaleY = overlay.height / rect.height;
+      
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      
+      const cx = overlay.width / 2;
+      const cy = overlay.height / 2;
+      const maxR = Math.min(cx, cy) * 0.92;
+
+      const dx = clickX - cx;
+      const dy = clickY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const clickedPct = dist / maxR;
+
+      let hitRing = null;
+      rings.forEach(r => {
+        if (Math.abs(clickedPct - r.radiusPct) < 0.06) {
+          hitRing = r;
+        }
+      });
+
+      let angleRad = Math.atan2(dy, dx);
+      let angleDeg = ((angleRad * 180 / Math.PI) + 90 + 360) % 360;
+      const zodiacIdx = Math.floor(angleDeg / 30);
+      const clickedZodiac = zodiacSigns[zodiacIdx] || 'Zodiac Segment';
+
+      if (hitRing) {
+        window.SanctuaryState.highlightedPoint = hitRing.name;
+        showToast(`Node Locked: ${hitRing.name}`);
+      } else if (clickedPct <= 1.0 && clickedPct >= 0.85) {
+        window.SanctuaryState.highlightedPoint = clickedZodiac;
+        showToast(`Zodiac Alignment Locked: ${clickedZodiac} (${angleDeg.toFixed(1)}°)`);
+      } else {
+        window.SanctuaryState.highlightedPoint = null;
+      }
+
+      updateAllPageBlocks();
+    });
+
+    // RENDER LOOP
     function renderMasterClock() {
       const ctx = overlay.getContext('2d');
       if (!ctx) return;
@@ -72,7 +152,7 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // 1. Ephemeris 360° Degree Ticks & Numerals
+      // 1. Ephemeris 360° Numerals & Zodiac Wheel
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(rot * 0.05);
@@ -136,16 +216,18 @@
         ctx.restore();
       }
 
-      // 2. Render Planetary Rings, Degree Markers & Nodes
+      // 2. Render Planetary Rings, Ping Effects & Labels
       rings.forEach((ring) => {
         const r = maxR * ring.radiusPct;
         ctx.save();
         ctx.translate(cx, cy);
 
+        const isHighlighted = window.SanctuaryState.highlightedPoint === ring.name;
+
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.strokeStyle = ring.color;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isHighlighted ? '#ffffff' : ring.color;
+        ctx.lineWidth = isHighlighted ? 3 : 1.5;
         ctx.stroke();
 
         const nodeAngle = (ring.phaseOffset + rot * (ring.speed * 200)) % (Math.PI * 2);
@@ -158,23 +240,23 @@
         const angleDiff = Math.abs(normalizedRadarAngle - normalizedNodeAngle);
         const isPinged = angleDiff < 0.12 || angleDiff > (Math.PI * 2 - 0.12);
 
-        if (isPinged) {
+        if (isPinged || isHighlighted) {
           ctx.beginPath();
           ctx.arc(nx, ny, 16, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 2;
           ctx.stroke();
         }
 
         ctx.beginPath();
-        ctx.arc(nx, ny, isPinged ? 9 : 7, 0, Math.PI * 2);
-        ctx.fillStyle = isPinged ? '#ffffff' : ring.color;
+        ctx.arc(nx, ny, (isPinged || isHighlighted) ? 9 : 7, 0, Math.PI * 2);
+        ctx.fillStyle = (isPinged || isHighlighted) ? '#ffffff' : ring.color;
         ctx.shadowColor = ring.color;
-        ctx.shadowBlur = isPinged ? 20 : 8;
+        ctx.shadowBlur = (isPinged || isHighlighted) ? 20 : 8;
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Dark background pill for crisp label readability over background lines
+        // Label Pill
         const labelText = ring.name.split('•')[0].trim();
         ctx.font = 'bold 11px monospace';
         const textMetrics = ctx.measureText(labelText);
@@ -192,7 +274,7 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(labelText, nx + offsetX, ny);
 
-        // Ring Header label at top dead center with background pill
+        // Header Ring Badge (Top Center)
         const headerText = `${ring.name} [${ring.time}]`;
         ctx.font = 'bold 11px monospace';
         const headerMetrics = ctx.measureText(headerText);
@@ -213,7 +295,7 @@
         drawRingDegrees(r, ring.speed, ring.phaseOffset, ring.color);
       });
 
-      // 3. Render Asteroids with Clean Labels
+      // 3. Render Asteroids
       asteroids.forEach((ast) => {
         const r = maxR * ast.radiusPct;
         ctx.save();
@@ -248,7 +330,7 @@
         drawRingDegrees(r, ast.speed, ast.phaseOffset, 'rgba(244, 63, 94, 0.4)');
       });
 
-      // 4. Render Fixed Stars with Clean Labels
+      // 4. Render Fixed Stars
       fixedStars.forEach((star) => {
         const r = maxR * star.radiusPct;
         ctx.save();
@@ -298,7 +380,33 @@
       }
       ctx.restore();
 
-      // 6. Sonar Radar Sweep
+      // 6. Render Live Natal Moon Marker (When Natal Form Submitted)
+      if (window.SanctuaryState.natalSubmitted) {
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Moon placement: 24°09' Libra (~204.15°)
+        const moonDeg = 204.15;
+        const moonRad = ((moonDeg - 90) * Math.PI) / 180;
+        const mx = Math.cos(moonRad) * (maxR * 0.73);
+        const my = Math.sin(moonRad) * (maxR * 0.73);
+
+        ctx.beginPath();
+        ctx.arc(mx, my, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('NATAL ☽ 24°09\' LIBRA', mx + 16, my);
+
+        ctx.restore();
+      }
+
+      // 7. Sonar Radar Sweep
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(radarAngle);
@@ -332,9 +440,166 @@
     renderMasterClock();
   }
 
+  // ============================================================================
+  // 2. BACKEND API FETCH & ALL PAGE BLOCKS POPULATION
+  // ============================================================================
+  async function fetchEphemerisPositions() {
+    try {
+      const response = await fetch('/positions?key=VALID_SANCTUARY_KEY');
+      if (!response.ok) throw new Error('API fetch error');
+      const data = await response.json();
+      if (data.status === 'success') {
+        window.SanctuaryState.apiPositions = data.positions;
+        console.log('[SANCTUARY ENGINE] Synchronized positions from backend:', data.positions);
+      }
+    } catch (err) {
+      console.warn('[SANCTUARY ENGINE] Local positions fetch notice:', err.message);
+    }
+  }
+
+  function updateAllPageBlocks() {
+    const state = window.SanctuaryState;
+
+    // A. Update General Metric Blocks Across Entire Page
+    const metricBlocks = document.querySelectorAll('.metric, .card, [data-block]');
+    metricBlocks.forEach(block => {
+      if (block.id === 'ancestralPortal') return; // Handled strictly on click!
+
+      if (state.natalSubmitted) {
+        const datetimeStr = state.natalDateTime ? state.natalDateTime.replace('T', ' at ') : 'Active Baseline';
+        const subHead = block.querySelector('.block-status, .card-subtitle, p');
+        if (subHead && !block.dataset.userUpdated) {
+          subHead.innerHTML = `<strong>Natal Baseline:</strong> ${datetimeStr} | <strong>Moon:</strong> 24°09' Libra (852 Hz)`;
+        }
+      }
+    });
+
+    // B. Update Personal Integration / Defense Protocol Cards
+    const integrationContainer = document.getElementById('integration-cards') || document.querySelector('.integration-grid');
+    if (integrationContainer && state.natalSubmitted) {
+      integrationContainer.innerHTML = `
+        <div class="card-item" style="padding: 1rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #38bdf8; border-radius: 8px; margin-bottom: 0.5rem;">
+          <h4 style="color: #38bdf8; margin: 0 0 0.4rem 0;">🌕 Natal Alignment Integration</h4>
+          <p style="margin: 0; color: #cbd5e1; font-size: 0.9rem;">
+            Baseline Locked: <strong>${state.natalDateTime.replace('T', ' ')}</strong><br/>
+            Key Signature: <strong>852 Hz (Moon @ 24°09' Libra)</strong> | Planetary Geometry: Harmonized
+          </p>
+        </div>
+        <div class="card-item" style="padding: 1rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #a855f7; border-radius: 8px;">
+          <h4 style="color: #a855f7; margin: 0 0 0.4rem 0;">🛡️ Frequency Engine Metrics</h4>
+          <p style="margin: 0; color: #cbd5e1; font-size: 0.9rem;">
+            Sun: 24°09' (963 Hz) | Mercury: 05°15' (741 Hz) | Master Clock Active
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  // ============================================================================
+  // 3. ANCESTRAL PORTAL (CLICK TO REVEAL ONLY)
+  // ============================================================================
+  function initAncestralPortal() {
+    const portal = document.getElementById('ancestralPortal');
+    const domPortal = document.getElementById('dom-portal');
+    const overlaysContainer = document.getElementById('overlays-container');
+
+    if (!portal) return;
+
+    // UNLOCKS and SHOWS deep information ONLY when clicked
+    portal.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+
+      window.SanctuaryState.ancestralUnlocked = !window.SanctuaryState.ancestralUnlocked;
+      
+      if (window.SanctuaryState.ancestralUnlocked) {
+        console.log('[PORTAL] Ancestral Lineage Portal Opened by User Interaction.');
+        portal.style.borderLeft = '4px solid #a855f7';
+        portal.style.boxShadow = '0 0 20px rgba(168, 85, 247, 0.3)';
+
+        if (domPortal) domPortal.style.display = 'none';
+
+        if (overlaysContainer) {
+          const dtStr = window.SanctuaryState.natalDateTime 
+            ? window.SanctuaryState.natalDateTime.replace('T', ' at ')
+            : 'Default Alignment';
+
+          overlaysContainer.innerHTML = `
+            <div style="padding: 1.2rem; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; margin-top: 0.8rem;">
+              <h4 style="color: #c084fc; margin: 0 0 0.5rem 0;">🌌 Ancestral Portal Unlocked</h4>
+              <p style="color: #f1f5f9; margin: 0 0 0.5rem 0; font-size: 0.95rem;">
+                <strong>Lineage Coordinate:</strong> ${dtStr}
+              </p>
+              <p style="color: #e9d5ff; line-height: 1.5; font-size: 0.9rem; margin: 0;">
+                Spiritual resonance frequency synchronized. Planetary harmonic nodes are now mapped across cosmic octaves. Active biological and cosmic cycles are anchored to your Libra Moon alignment (24°09').
+              </p>
+            </div>
+          `;
+        }
+        showToast('Ancestral Portal Unlocked');
+      } else {
+        portal.style.borderLeft = '4px solid #3b82f6';
+        portal.style.boxShadow = 'none';
+        if (domPortal) domPortal.style.display = 'block';
+        if (overlaysContainer) overlaysContainer.innerHTML = '';
+        showToast('Ancestral Portal Standby');
+      }
+    });
+  }
+
+  // ============================================================================
+  // 4. FORM AND BUTTON BINDINGS
+  // ============================================================================
+  function initUI() {
+    const natalForm = document.getElementById('natalForm');
+    const clearBtn = document.getElementById('clearOverlayBtn');
+    const dateInput = document.getElementById('natalDateTime');
+
+    if (natalForm) {
+      natalForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const userDate = dateInput ? dateInput.value : '';
+        if (!userDate) return;
+
+        window.SanctuaryState.natalSubmitted = true;
+        window.SanctuaryState.natalDateTime = userDate;
+
+        showToast(`Natal Baseline Set: ${userDate.replace('T', ' ')}`);
+
+        await fetchEphemerisPositions();
+        updateAllPageBlocks();
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (dateInput) dateInput.value = '';
+        window.SanctuaryState.natalSubmitted = false;
+        window.SanctuaryState.natalDateTime = null;
+        window.SanctuaryState.highlightedPoint = null;
+
+        const overlaysContainer = document.getElementById('overlays-container');
+        if (overlaysContainer) overlaysContainer.innerHTML = '';
+
+        showToast('Natal Baseline Cleared');
+        updateAllPageBlocks();
+      });
+    }
+
+    initAncestralPortal();
+  }
+
+  // ============================================================================
+  // INITIALIZATION BOOTSTRAP
+  // ============================================================================
+  function boot() {
+    initMasterClock();
+    initUI();
+    fetchEphemerisPositions();
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMasterClock);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    setTimeout(initMasterClock, 150);
+    setTimeout(boot, 100);
   }
 })();

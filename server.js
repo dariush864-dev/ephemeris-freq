@@ -9,8 +9,7 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. TRUST PROXY FIX (Required for LocalTunnel / Reverse Proxies with 
-express-rate-limit)
+// 1. TRUST PROXY FIX (Required for LocalTunnel / Reverse Proxies with express-rate-limit)
 app.set('trust proxy', 1);
 
 // 2. MIDDLEWARE
@@ -27,8 +26,7 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.warn(`[SECURITY AUDIT] [RATE_LIMIT_EXCEEDED] IP: ${req.ip} | Path: 
-${req.path}`);
+    console.warn(`[SECURITY AUDIT] [RATE_LIMIT_EXCEEDED] IP: ${req.ip} | Path: ${req.path}`);
     res.status(429).json({ error: 'Too many requests, please try again later.' });
   }
 });
@@ -41,11 +39,8 @@ const auditSecurity = (req, res, next) => {
   const clientIp = req.ip || req.connection.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
-  // Example check for protected endpoints
   if (apiKey !== 'VALID_SANCTUARY_KEY') {
-    console.warn(`[SECURITY AUDIT] [${new Date().toISOString()}] 
-[FAILED_ACCESS_ATTEMPT] IP: ${clientIp} | Path: ${req.path} | UA: ${userAgent} | 
-Invalid key provided: ${apiKey}`);
+    console.warn(`[SECURITY AUDIT] [${new Date().toISOString()}] [FAILED_ACCESS_ATTEMPT] IP: ${clientIp} | Path: ${req.path} | UA: ${userAgent} | Invalid key provided: ${apiKey}`);
     return res.status(403).json({ error: 'Access Denied: Invalid Sanctuary Key' });
   }
 
@@ -69,8 +64,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'Online', shield: 'Active', port: PORT });
 });
 
-// Fallback to index.html for SPA routing if needed
-app.get('*', (req, res) => {
+// Fallback to index.html for SPA routing (Express 5 compatible)
+app.get(/^\/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
